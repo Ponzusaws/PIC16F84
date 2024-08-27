@@ -336,7 +336,7 @@ module ALU(
                 F_OUT[6] = 1'b1;
             end
 
-            7'b0110111:begin // BSF at bit 7
+            7'b0101111:begin // BSF at bit 7
                 F_OUT = F_ADD;
                 F_OUT[7] = 1'b1;
             end
@@ -409,10 +409,10 @@ module ALU(
                     F_OUT[6] = 1'b0;
                 end
             end
-
             7'b0110111:begin //BTFSC TO BIT 7
                 if (F_ADD[7] == 1'b0) begin
                     F_OUT = F_ADD;
+                    //F_OUT = 8'b00000001;
                 end
                 else begin
                     F_OUT = F_ADD;
@@ -514,12 +514,9 @@ module ALU(
             end
 
             7'b111001x:begin //ANDLW
-                W_REG = L_REG & W_REG;
+                W_REG = W_REG & L_REG;
                 F_OUT = 8'b00000000;
-                if ((W_REG[3:0] + F_ADD[3:0] > 4'b1001) || (W_REG[7:4] + F_ADD[7:4] > 4'b1001) || STATUS_REG[0] == 1) begin
-                    STATUS_REG[1] = 1'b1;
-                end
-
+        
                 if (W_REG == 8'b00000000) begin
                     STATUS_REG[2] = 1'b1;
                 end 
@@ -537,10 +534,10 @@ module ALU(
             7'b11110x: begin // SUBLW 
                 if (W_REG >= L_REG) begin
                     W_REG = L_REG - W_REG; // No borrow, normal subtraction
-                    STATUS_REG[0] = 1'b1;           // Set C_OUT since no borrow occurred
+                    STATUS_REG[0] = 1'b0;           // Set C_OUT since no borrow occurred
                 end else begin
                     W_REG = L_REG - W_REG;  // Borrow occurred, subtract in reverse
-                    STATUS_REG[0] = 1'b0;           // Clear C_OUT since borrow occurred
+                    STATUS_REG[0] = 1'b1;           // Clear C_OUT since borrow occurred
                 end
                 F_OUT = 8'b00000000;        // Clear F_OUT as per the operation
                 if ((W_REG[3:0] + F_ADD[3:0] > 4'b1001) || (W_REG[7:4] + F_ADD[7:4] > 4'b1001) || STATUS_REG[0] == 1) begin
