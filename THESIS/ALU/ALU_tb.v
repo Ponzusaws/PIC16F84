@@ -14,6 +14,7 @@ module ALU_tb;
     wire [7:0] W_REG;
     wire [7:0] STATUS_REG;
     wire [7:0] CHECK_REG;
+    wire [7:0] BANK1;
 
     localparam ADDWF = 6'b000111;
     localparam ANDWF = 6'b000101;
@@ -41,7 +42,8 @@ module ALU_tb;
         //.b(b),
         .W_REG(W_REG),
         .STATUS_REG(STATUS_REG),
-        .CHECK_REG(CHECK_REG)
+        .CHECK_REG(CHECK_REG),
+        .BANK1(BANK1)
     );
 
     // Clock generation
@@ -260,7 +262,7 @@ module ALU_tb;
         $display("k = %h, W_REG = %h, STATUS_REG = %b",OP_CODE[7:0],W_REG,STATUS_REG);
         //#20;
 
-                // 11 1100 0010 0000
+        // 11 1100 0010 0000
         // OPCODE FOR SUBLW
         // K = 20 - W = 0 => W = 20, Z = 0
         OP_CODE = 14'b11110000100000; // Match the width to 14 bits
@@ -296,6 +298,32 @@ module ALU_tb;
         $display("k = %h, W_REG = %h, STATUS_REG = %b",OP_CODE[7:0],W_REG,STATUS_REG);
         //#20;
 
+        // 0100 000 000 1100
+        // OPCODE FOR BCF
+        // GPR = EF => GPR = EE CLR AT GPR[0]
+        OP_CODE = 14'b01000000001100; // Match the width to 14 bits
+        #20;
+        $display("OP_CODE = %b - BCF(GPR) TO F", OP_CODE);
+        $display("b = %b, W_REG = %h, F(GPR) = %h, STATUS_REG = %b",OP_CODE[9:7],W_REG,CHECK_REG,STATUS_REG);
+        #20;
+
+        // 0101 001 000 0100
+        // OPCODE FOR BSF
+        // FSR = 90 => FSR = 92 SET AT FSR[1]
+        OP_CODE = 14'b01010010000100; // Match the width to 14 bits
+        #20;
+        $display("OP_CODE = %b - BCF(FSR) TO F", OP_CODE);
+        #20;
+        $display("b = %b, W_REG = %h, F(FSR) = %h, STATUS_REG = %b, BANK1(FSR) = %h",OP_CODE[9:7],W_REG,CHECK_REG,STATUS_REG, BANK1);
+        //#20;
+
+        // // 0101 001 000 0100
+        // // OPCODE FOR BSF
+        // // FSR = 90 => FSR = 92 SET AT FSR[1]
+        // #20;
+        // $display("OP_CODE = %b - BCF(FSR) TO F", OP_CODE);
+        // $display("b = %b, W_REG = %h, F(FSR) = %h, STATUS_REG = %b",OP_CODE[9:7],W_REG,CHECK_REG,STATUS_REG);
+        // //#20;
 
     $finish;
     end
