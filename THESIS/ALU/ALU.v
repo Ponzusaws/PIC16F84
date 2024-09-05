@@ -1,18 +1,17 @@
 //ALU WITH DATA MEMORY
 //SO FAR IT WORKS BUT ONLY BYTE ORIENTED OPERATIONS WERE IMPLEMENTED PA
 //9/3/2024
+
+//9-5-2024
+//ADDED "BANKING"
 module ALU(
     input wire clk,
-    //input wire [7:0] F_ADD,
     input wire [13:0] OP_CODE, //INSTRUCTION
-    //input wire [7:0] L_REG,
     input wire [7:0] REG1,
-    //input wire d,
-    //input wire [2:0] b,
-    output reg [7:0] W_REG,  // Initialize W_REG to a known value
-    //output reg [7:0] F_REG,  // Initialize F_REG to a known value
+    output reg [7:0] W_REG,  //W_REG
     output reg [7:0] CHECK_REG,
-    output reg [7:0]  STATUS_REG
+    output reg [7:0] STATUS_REG,
+    output reg [7:0] BANK1
 );
 
     //BYTE-ORIENTED FILE REGISTER OPERATIONS 7-BIT
@@ -21,7 +20,6 @@ module ALU(
     localparam ADDWF = 6'b000111;
     localparam ANDWF = 6'b000101;
     localparam CLR  =  6'b000001;
-    //localparam CLRW =  6'b000001;
     localparam COMF =  6'b001001;
     localparam DECF =  6'b000011;
     localparam INCF =  6'b001010;
@@ -53,7 +51,6 @@ module ALU(
     localparam SUBLW = 5'b11110;
     localparam MOVLW = 4'b1100;
     
-    
     // // Add these lines if you have operations like INCFSZ and DEFFSZ
     // localparam INCFSZ = 14'b01000100000000; // Example definition
     // localparam DEFFSZ = 14'b01001000000000; // Example definition
@@ -66,7 +63,8 @@ module ALU(
     end
     
     // Declare the memory (68 bytes)
-    reg [7:0] data_memory [0:127];
+    //0-127 BANK 0 & 128-255 BANK 1
+    reg [7:0] data_memory [0:255];
 
     // Define the special function registers (SFR)
     localparam INDF     = 7'h00;
@@ -105,6 +103,7 @@ module ALU(
     reg tmp_cout = 1'b0;
     reg tmp_msbF = 1'b0;
     reg [7:0] ALU_OUT;
+    
 
     wire b = OP_CODE[9:7]; // 3-bit address
     wire d = OP_CODE[7];    // destination bit 0 => W, 1 => f
@@ -112,8 +111,32 @@ module ALU(
     reg [7:0] F_REG;
     reg [7:0] K_LITERAL = 8'b00000000;
 
-    
+    reg [7:0] test_bank1;
+
+
     always @(posedge clk) begin
+
+        //the value of the register at these addresses(bank 0) will be stored to the same registers at bank 1
+        if (F_ADDR == 8'h00 || F_ADDR == 8'h02 || F_ADDR == 8'h03 || F_ADDR == 8'h04 || F_ADDR == 8'h0A || F_ADDR == 8'h0B ) begin
+            test_bank1 = F_ADDR + 8'h80;
+            data_memory[test_bank1] = data_memory[F_ADDR];
+        end 
+        //the value of the registers with addresses from 0C - 4F(bank 0) will be stored in bank 1
+        if (F_ADDR >= 8'h0C || F_ADDR <= 8'h4F) begin
+            test_bank1 = F_ADDR + 8'h80;
+            data_memory[test_bank1] = data_memory[F_ADDR];
+        end
+
+        //the value of the register at these addresses(bank 1) will be stored to the same registers at bank 0
+        if (F_ADDR == 8'h80 || F_ADDR == 8'h82 || F_ADDR == 8'h83 || F_ADDR == 8'h84 || F_ADDR == 8'h8A || F_ADDR == 8'h8B ) begin 
+            test_bank1 = F_ADDR - 8'h80;
+            data_memory[test_bank1] = data_memory[F_ADDR];
+        end 
+        //the value of the registers with addresses from 8C - CF(bank 1) will be stored in bank 0
+        if (F_ADDR >= 8'h8C || F_ADDR <= 8'hCF) begin
+            test_bank1 = F_ADDR - 8'h80;
+            data_memory[test_bank1] = data_memory[F_ADDR];
+        end
 
         data_memory[STATUS] = 8'h00;  //RESETS STATUS
         F_REG = data_memory[F_ADDR]; // the value of the register at the OP_CODE[6:0] address is stored in F_REG ;
@@ -447,59 +470,17 @@ module ALU(
             MOVLW : begin
                 W_REG =  K_LITERAL;
             end
-            BCF:begin // BCF at bit 0
-                if (b == 3'b000 )begin
-                    data_memory[F_ADDR][0] = 1'b0;
-                end
-                else if (b == 3'b001)begin
-                    data_memory[F_ADDR][1] = 1'b0;
-                end
-                else if (b == 3'b010)begin
-                    data_memory[F_ADDR][2] = 1'b0;
-                end
-                else if (b == 3'b011)begin
-                    data_memory[F_ADDR][3] = 1'b0;
-                end
-                else if (b == 3'b100)begin
-                    data_memory[F_ADDR][4] = 1'b0;
-                end
-                else if (b == 3'b101)begin
-                    data_memory[F_ADDR][5] = 1'b0;
-                end
-                else if (b == 3'b110)begin
-                    data_memory[F_ADDR][6] = 1'b0;
-                end
-                else if (b == 3'b111)begin
-                    data_memory[F_ADDR][7] = 1'b0;
-                end
+            BCF:begin // BCF
+                data_memory[F_ADDR][b] = 1'b0;
+                CHECK_REG = data_memory[F_ADDR];
             end
             BSF:begin // BSF 
-                if (b == 3'b000 )begin
-                    data_memory[F_ADDR][0] = 1'b1;
-                end
-                else if (b == 3'b001)begin
-                    data_memory[F_ADDR][1] = 1'b1;
-                end
-                else if (b == 3'b010)begin
-                    data_memory[F_ADDR][2] = 1'b1;
-                end
-                else if (b == 3'b011)begin
-                    data_memory[F_ADDR][3] = 1'b1;
-                end
-                else if (b == 3'b100)begin
-                    data_memory[F_ADDR][4] = 1'b1;
-                end
-                else if (b == 3'b101)begin
-                    data_memory[F_ADDR][5] = 1'b1;
-                end
-                else if (b == 3'b110)begin
-                    data_memory[F_ADDR][6] = 1'b1;
-                end
-                else if (b == 3'b111)begin
-                    data_memory[F_ADDR][7] = 1'b1;
-                end
+                data_memory[F_ADDR][b] = 1'b1;
+                CHECK_REG = data_memory[F_ADDR];
             end
 
         endcase
+
+        BANK1 = data_memory[test_bank1];
     end
 endmodule
